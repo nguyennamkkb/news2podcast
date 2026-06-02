@@ -1,6 +1,8 @@
 import mistune
+from temporalio import activity
 
 
+@activity.defn
 def parse_content(text: str) -> dict:
     """Parse markdown or plain text into structured content."""
     if not text or not text.strip():

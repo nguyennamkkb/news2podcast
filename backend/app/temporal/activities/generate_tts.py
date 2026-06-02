@@ -2,8 +2,10 @@ import edge_tts
 import asyncio
 import subprocess
 from pathlib import Path
+from temporalio import activity
 
 
+@activity.defn
 async def generate_tts(text: str, voice: str, output_path: str) -> dict:
     """Generate TTS audio using Microsoft Edge TTS (free)."""
     Path(output_path).parent.mkdir(parents=True, exist_ok=True)

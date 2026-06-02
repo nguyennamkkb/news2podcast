@@ -1,4 +1,5 @@
 import asyncio
+from concurrent.futures import ThreadPoolExecutor
 from temporalio.client import Client
 from temporalio.worker import Worker
 from app.config import get_settings
@@ -38,6 +39,7 @@ async def start_worker():
             mix_audio,
             generate_thumbnail,
         ],
+        activity_executor=ThreadPoolExecutor(max_workers=10),
     )
     print("🚀 Temporal worker starting...")
     await worker.run()

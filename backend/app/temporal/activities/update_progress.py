@@ -1,6 +1,8 @@
+from temporalio import activity
 from app.api.ws import progress_store
 
 
+@activity.defn
 async def update_progress(job_id: str, current_step: str, percent: int, steps: list) -> dict:
     progress_store[job_id] = {
         "status": "processing",
@@ -11,6 +13,7 @@ async def update_progress(job_id: str, current_step: str, percent: int, steps: l
     return {"ok": True}
 
 
+@activity.defn
 async def mark_job_completed(job_id: str, video_data: dict) -> dict:
     progress_store[job_id] = {
         "status": "completed",
@@ -22,6 +25,7 @@ async def mark_job_completed(job_id: str, video_data: dict) -> dict:
     return {"ok": True}
 
 
+@activity.defn
 async def mark_job_failed(job_id: str, error: str, retryable: bool = True) -> dict:
     progress_store[job_id] = {
         "status": "failed",

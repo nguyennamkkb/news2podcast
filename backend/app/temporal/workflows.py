@@ -46,7 +46,7 @@ class NewsToVideoWorkflow:
 
             slides_data = await workflow.execute_activity(
                 "generate_script",
-                {"content": parsed, "config": job_input["config"]},
+                args=[parsed, job_input["config"]],
                 start_to_close_timeout=timedelta(seconds=30),
                 retry_policy=RetryPolicy(maximum_attempts=2),
             )

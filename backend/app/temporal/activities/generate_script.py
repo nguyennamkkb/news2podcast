@@ -1,5 +1,6 @@
 import json
 import httpx
+from temporalio import activity
 from app.config import get_settings
 
 SYSTEM_PROMPT = """Bạn là editor video chuyên nghiệp. Từ nội dung bài viết, tạo script cho video news explainer.
@@ -15,7 +16,9 @@ OUTPUT FORMAT:
 {{"slides": [{{"title": "string", "bullets": ["string"], "voiceover": "string", "duration_sec": number}}]}}"""
 
 
-async def _call_ollama(api_url: str, model: str, system_prompt: str, prompt: str) -> str:
+# --- Internal helpers (plain functions, NOT activities) ---
+
+def _call_ollama(api_url: str, model: str, system_prompt: str, prompt: str) -> str:
     """Gọi Ollama API (/api/generate)."""
     payload = {
         "model": model,
@@ -25,14 +28,14 @@ async def _call_ollama(api_url: str, model: str, system_prompt: str, prompt: str
         "stream": False,
         "options": {"temperature": 0.3, "num_predict": 2048},
     }
-    async with httpx.AsyncClient(timeout=30.0) as client:
-        response = await client.post(api_url, json=payload)
+    with httpx.Client(timeout=30.0) as client:
+        response = client.post(api_url, json=payload)
         response.raise_for_status()
         result = response.json()
     return result.get("response", "")
 
 
-async def _call_openai(api_url: str, api_key: str, model: str, system_prompt: str, prompt: str) -> str:
+def _call_openai(api_url: str, api_key: str, model: str, system_prompt: str, prompt: str) -> str:
     """Gọi OpenAI-compatible API (/v1/chat/completions)."""
     headers = {"Content-Type": "application/json"}
     if api_key:
@@ -47,13 +50,16 @@ async def _call_openai(api_url: str, api_key: str, model: str, system_prompt: st
         "temperature": 0.3,
         "max_tokens": 2048,
     }
-    async with httpx.AsyncClient(timeout=30.0) as client:
-        response = await client.post(api_url, json=payload, headers=headers)
+    with httpx.Client(timeout=30.0) as client:
+        response = client.post(api_url, json=payload, headers=headers)
         response.raise_for_status()
         result = response.json()
     return result["choices"][0]["message"]["content"]
 
 
+# --- Temporal activity ---
+
+@activity.defn
 async def generate_script(content: dict, config: dict) -> dict:
     settings = get_settings()
     n_slides = config.get("slide_count", 5)

@@ -1,7 +1,9 @@
 import os
+from temporalio import activity
 from app.services.storage import upload_file
 
 
+@activity.defn
 async def upload_storage(video_9x16_path: str, video_16x9_path: str, job_id: str,
                          thumbnail_9x16_path: str = "", thumbnail_16x9_path: str = "") -> dict:
     """Upload both video formats and optional thumbnails to MinIO."""

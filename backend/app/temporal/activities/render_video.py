@@ -1,10 +1,12 @@
 import json
 import subprocess
 from pathlib import Path
+from temporalio import activity
 
 REMOTION_PROJECT_DIR = Path(__file__).parent.parent.parent.parent.parent / "remotion"
 
 
+@activity.defn
 def render_video(slides_data: list, output_path: str) -> dict:
     output = Path(output_path)
     output.parent.mkdir(parents=True, exist_ok=True)

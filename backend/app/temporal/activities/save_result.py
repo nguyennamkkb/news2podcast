@@ -1,11 +1,13 @@
 import uuid
 from datetime import datetime
 from sqlalchemy import select
+from temporalio import activity
 from app.database import async_session
 from app.models.job import Job
 from app.models.video import Video
 
 
+@activity.defn
 async def save_result(
     job_id: str,
     title: str,

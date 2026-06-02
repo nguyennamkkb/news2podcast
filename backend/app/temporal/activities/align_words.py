@@ -1,6 +1,8 @@
 import whisperx
+from temporalio import activity
 
 
+@activity.defn
 async def align_words(audio_path: str, text: str, language: str = "vi") -> dict:
     """Align audio to text and return word-level timestamps."""
     device = "cpu"

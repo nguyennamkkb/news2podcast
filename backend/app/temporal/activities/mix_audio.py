@@ -1,7 +1,9 @@
 import subprocess
 from pathlib import Path
+from temporalio import activity
 
 
+@activity.defn
 def mix_audio(voice_path: str, bgm_path: str, output_path: str, bgm_volume_db: float = -20.0) -> dict:
     """Mix voiceover with background music. Voice stays at original volume, BGM lowered."""
     Path(output_path).parent.mkdir(parents=True, exist_ok=True)

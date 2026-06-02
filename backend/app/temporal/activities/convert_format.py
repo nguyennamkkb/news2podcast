@@ -1,7 +1,9 @@
 import subprocess
 from pathlib import Path
+from temporalio import activity
 
 
+@activity.defn
 def convert_9x16_to_16x9(input_path: str, output_path: str) -> dict:
     output = Path(output_path)
     output.parent.mkdir(parents=True, exist_ok=True)

@@ -1,7 +1,9 @@
 import subprocess
 from pathlib import Path
+from temporalio import activity
 
 
+@activity.defn
 async def generate_thumbnail(video_path: str, output_path: str, time_sec: float = 2.0) -> dict:
     """Capture a frame from video as thumbnail image."""
     output = Path(output_path)
