@@ -110,7 +110,9 @@ export default function VideoDetailPage() {
       <div className="max-w-6xl mx-auto">
         <div className="flex items-center justify-between mb-8">
           <Link href="/" className="text-gray-400 hover:text-white">← Back</Link>
-          <h1 className="text-xl md:text-2xl font-display font-black">✅ Video Ready</h1>
+          <h1 className="text-xl md:text-2xl font-display font-black">✅ Video Ready{job?.progress?.steps?.some((s: any) => s.name === 'cached') && (
+            <span className="ml-3 px-2 py-0.5 text-xs bg-yellow-500/20 text-yellow-400 rounded-full font-medium">⚡ Cached</span>
+          )}</h1>
           <div className="w-16" />
         </div>
 

@@ -19,6 +19,8 @@ export interface JobProgress {
   steps: ProgressStep[];
 }
 
+export interface WordTiming { word: string; start: number; end: number; }
+
 export interface VideoConfig {
   voice: string;
   format: '9x16' | '16x9';
