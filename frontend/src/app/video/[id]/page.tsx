@@ -1,71 +1,174 @@
-"use client";
+'use client';
 
-import { useParams } from "next/navigation";
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ProgressTracker } from "@/components/ProgressTracker";
-import { useEffect, useState } from "react";
+import { useState } from 'react';
+import { useParams } from 'next/navigation';
+import Link from 'next/link';
+import { useJobPolling } from '@/hooks/useJobPolling';
+import { ProgressTracker } from '@/components/ProgressTracker';
+import { VideoPreview } from '@/components/VideoPreview';
+import { getDownloadUrl } from '@/lib/api';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 export default function VideoDetailPage() {
-  const { id } = useParams<{ id: string }>();
-  const [videoData, setVideoData] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const params = useParams();
+  const jobId = params.id as string;
+  const { data: job, isLoading } = useJobPolling(jobId);
+  const [cancelling, setCancelling] = useState(false);
+  const [copied, setCopied] = useState(false);
 
-  useEffect(() => {
-    fetch(`http://localhost:8000/api/v1/jobs/${id}`)
-      .then((r) => r.json())
-      .then((data) => { setVideoData(data); setLoading(false); })
-      .catch(() => setLoading(false));
-  }, [id]);
+  const handleCancel = async () => {
+    setCancelling(true);
+    try {
+      await fetch(`${API_BASE}/api/v1/jobs/${jobId}`, { method: 'DELETE' });
+      window.location.reload();
+    } catch {
+      setCancelling(false);
+    }
+  };
 
-  if (loading) return <main className="min-h-screen p-8 flex items-center justify-center"><p className="text-gray-400">Loading...</p></main>;
+  const handleCopyError = () => {
+    if (job?.error_message) {
+      navigator.clipboard.writeText(job.error_message);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
 
-  const isDone = videoData?.status === "completed";
-  const isProcessing = videoData?.status === "queued" || videoData?.status === "processing";
+  if (isLoading || !job || job.status === 'queued' || job.status === 'processing') {
+    const percent = job?.progress?.percent ?? 0;
+    const remainingStep = job?.progress?.steps?.find(s => s.status === 'in_progress' || s.status === 'pending');
+    return (
+      <main className="min-h-screen p-4 md:p-8">
+        <div className="max-w-4xl mx-auto">
+          <div className="flex items-center justify-between mb-8">
+            <Link href="/" className="text-gray-400 hover:text-white">← Back</Link>
+            <h1 className="text-xl md:text-2xl font-display font-black">Generating...</h1>
+            <div className="w-16" />
+          </div>
+          <ProgressTracker jobId={jobId} />
+          {job?.progress && (
+            <p className="text-center text-sm text-gray-400 mt-4">
+              {percent >= 95 ? 'Almost done...' : `Step: ${remainingStep?.name ?? '...'} — ${percent}% complete`}
+            </p>
+          )}
+          <div className="text-center mt-6">
+            <Button variant="outline" onClick={handleCancel} disabled={cancelling} className="text-red-400 border-red-400/30 hover:bg-red-400/10">
+              {cancelling ? 'Cancelling...' : 'Cancel'}
+            </Button>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  if (job.status === 'cancelled') {
+    return (
+      <main className="min-h-screen p-4 md:p-8">
+        <div className="max-w-4xl mx-auto">
+          <Link href="/" className="text-gray-400 hover:text-white mb-4 block">← Back</Link>
+          <Card className="bg-bg-secondary border-border">
+            <CardHeader><CardTitle className="text-yellow-400">🚫 Cancelled</CardTitle></CardHeader>
+            <CardContent className="text-center">
+              <p className="text-gray-400 mb-4">This job was cancelled.</p>
+              <Link href="/new"><Button className="bg-accent-blue hover:bg-accent-blue/80">Create New Video</Button></Link>
+            </CardContent>
+          </Card>
+        </div>
+      </main>
+    );
+  }
+
+  if (job.status === 'failed') {
+    return (
+      <main className="min-h-screen p-4 md:p-8">
+        <div className="max-w-4xl mx-auto">
+          <Link href="/" className="text-gray-400 hover:text-white mb-4 block">← Back</Link>
+          <Card className="bg-bg-secondary border-border">
+            <CardHeader><CardTitle className="text-red-400">❌ Generation Failed</CardTitle></CardHeader>
+            <CardContent>
+              <p className="text-gray-400 mb-4">{job.error_message || 'Unknown error'}</p>
+              <div className="flex gap-2">
+                <Link href="/new">
+                  <Button className="bg-accent-blue hover:bg-accent-blue/80">🔄 Retry</Button>
+                </Link>
+                <Button variant="outline" onClick={handleCopyError} disabled={copied}>
+                  {copied ? '✅ Copied' : '📋 Copy Error'}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </main>
+    );
+  }
 
   return (
-    <main className="min-h-screen p-8">
-      <div className="max-w-4xl mx-auto">
-        <Link href="/" className="text-gray-400 hover:text-white mb-4 inline-block">← Back</Link>
+    <main className="min-h-screen p-4 md:p-8">
+      <div className="max-w-6xl mx-auto">
+        <div className="flex items-center justify-between mb-8">
+          <Link href="/" className="text-gray-400 hover:text-white">← Back</Link>
+          <h1 className="text-xl md:text-2xl font-display font-black">✅ Video Ready</h1>
+          <div className="w-16" />
+        </div>
 
-        {isProcessing && <ProgressTracker jobId={id} />}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
+          <div className="flex flex-col items-center">
+            <p className="text-sm text-gray-400 mb-2">9:16 (TikTok/Shorts)</p>
+            <VideoPreview src={getDownloadUrl(jobId, '9x16')} aspectRatio="9:16" />
+          </div>
 
-        {isDone && (
-          <div className="grid grid-cols-2 gap-6">
+          <div className="flex flex-col items-center">
+            <p className="text-sm text-gray-400 mb-2">16:9 (YouTube)</p>
+            <VideoPreview src={getDownloadUrl(jobId, '16x9')} aspectRatio="16:9" />
+          </div>
+
+          <div className="md:col-span-2">
             <Card className="bg-bg-secondary border-border">
-              <CardContent className="p-4">
-                <video src={videoData?.video?.downloads?.["9x16"]?.url} controls className="w-full rounded-lg" poster={videoData?.video?.thumbnail_url} />
-              </CardContent>
-            </Card>
-            <Card className="bg-bg-secondary border-border">
-              <CardContent className="p-4">
-                <video src={videoData?.video?.downloads?.["16x9"]?.url} controls className="w-full rounded-lg" poster={videoData?.video?.thumbnail_url} />
-              </CardContent>
-            </Card>
-            <Card className="bg-bg-secondary border-border col-span-2">
-              <CardHeader><CardTitle>{videoData?.video?.title || "Video"}</CardTitle></CardHeader>
-              <CardContent className="space-y-2">
-                <p className="text-sm text-gray-400">Slides: {videoData?.video?.slide_count} | Duration: {Math.round(videoData?.video?.duration_sec)}s</p>
-                <div className="flex gap-3">
-                  <Button asChild><a href={videoData?.video?.downloads?.["9x16"]?.url} download>⬇ 9:16</a></Button>
-                  <Button asChild><a href={videoData?.video?.downloads?.["16x9"]?.url} download>⬇ 16:9</a></Button>
+              <CardContent className="py-4">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                  <div>
+                    <p className="text-sm text-gray-400">Title</p>
+                    <p className="font-bold text-sm md:text-base truncate max-w-[200px] mx-auto">{job.video?.title || '—'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-400">Slides</p>
+                    <p className="font-bold">{job.video?.slide_count || '—'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-400">Duration</p>
+                    <p className="font-bold">{job.video?.duration_sec ? formatDuration(job.video.duration_sec) : '—'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-400">Created</p>
+                    <p className="font-bold text-sm">{job.created_at ? new Date(job.created_at).toLocaleTimeString() : '—'}</p>
+                  </div>
                 </div>
               </CardContent>
             </Card>
           </div>
-        )}
 
-        {videoData?.status === "failed" && (
-          <Card className="bg-bg-secondary border-red-500">
-            <CardContent className="p-6 text-center">
-              <p className="text-red-400 text-lg mb-4">❌ Generation failed</p>
-              <p className="text-gray-400 mb-4">{videoData?.error_message}</p>
-              <Button onClick={() => window.location.reload()}>Retry</Button>
-            </CardContent>
-          </Card>
-        )}
+          <div className="md:col-span-2 flex flex-col sm:flex-row gap-3 justify-center">
+            <a href={getDownloadUrl(jobId, '9x16')} download>
+              <Button className="w-full sm:w-auto bg-accent-blue hover:bg-accent-blue/80">⬇ Download 9:16 (MP4)</Button>
+            </a>
+            <a href={getDownloadUrl(jobId, '16x9')} download>
+              <Button className="w-full sm:w-auto bg-accent-teal hover:bg-accent-teal/80">⬇ Download 16:9 (MP4)</Button>
+            </a>
+            <Link href="/new">
+              <Button variant="outline" className="w-full sm:w-auto">🔄 Regenerate</Button>
+            </Link>
+          </div>
+        </div>
       </div>
     </main>
   );
+}
+
+function formatDuration(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  return `${m}:${s.toString().padStart(2, '0')}`;
 }
