@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
 from app.models.schemas import CreateJobRequest, JobResponse, JobDetailResponse, ProgressSchema, ProgressStepSchema
-from app.services.job_service import create_job, get_job, list_jobs
+from app.services.job_service import create_job, get_job, list_jobs, get_cached_job
 from app.services.video_service import get_video_by_job
 from app.temporal.client import start_news_video_workflow, cancel_workflow
 
@@ -15,6 +15,46 @@ async def create_video_job(req: CreateJobRequest, db: AsyncSession = Depends(get
     job = await create_job(db, content=req.content, config=req.config.model_dump())
     config_dict = req.config.model_dump()
     config_dict["voice"] = config_dict.get("voice", "vi-VN-HoaiMyNeural")
+
+    cached_job = await get_cached_job(db, req.content, config_dict)
+    if cached_job:
+        video_record = await get_video_by_job(db, cached_job.id)
+        if video_record:
+            from app.models.schemas import VideoOutputSchema, DownloadInfo
+            from app.services.storage import get_download_url
+            from datetime import datetime, timedelta
+            video = VideoOutputSchema(
+                video_id=video_record.id,
+                title=video_record.title,
+                duration_sec=video_record.duration_sec,
+                slide_count=video_record.slide_count,
+                downloads={
+                    "9x16": DownloadInfo(
+                        url=get_download_url(f"videos/{cached_job.id}_9x16.mp4"),
+                        size_bytes=video_record.file_9x16_size or 0,
+                        expires_at=datetime.utcnow() + timedelta(hours=24),
+                    ),
+                    "16x9": DownloadInfo(
+                        url=get_download_url(f"videos/{cached_job.id}_16x9.mp4"),
+                        size_bytes=video_record.file_16x9_size or 0,
+                        expires_at=datetime.utcnow() + timedelta(hours=24),
+                    ),
+                },
+            )
+            return JobDetailResponse(
+                job_id=cached_job.id,
+                status="completed",
+                progress=ProgressSchema(
+                    current_step="cached",
+                    percent=100,
+                    steps=[ProgressStepSchema(name="cached", status="completed", duration_ms=0)],
+                ),
+                video=video,
+                error_message=None,
+                created_at=cached_job.created_at,
+                updated_at=cached_job.updated_at,
+                completed_at=cached_job.completed_at,
+            )
 
     job_input = {
         "job_id": str(job.id),

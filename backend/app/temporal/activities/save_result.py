@@ -16,6 +16,7 @@ async def save_result(
     size_9x16: int,
     url_16x9: str,
     size_16x9: int,
+    thumbnail_url: str,
     slides_json: dict,
 ) -> dict:
     async with async_session() as db:
@@ -32,6 +33,7 @@ async def save_result(
             file_9x16_size=size_9x16,
             file_16x9_url=url_16x9,
             file_16x9_size=size_16x9,
+            thumbnail_url=thumbnail_url,
             slides_json=slides_json,
         )
         db.add(video)
