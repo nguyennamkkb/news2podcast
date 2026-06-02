@@ -1,17 +1,20 @@
 import React from 'react';
 import { AbsoluteFill, useCurrentFrame, interpolate, spring } from 'remotion';
 import { colors, typography } from '../design-tokens';
+import { LowerThird } from './LowerThird';
 
 interface NewsSlideProps {
   title: string;
   bullets: string[];
   bgColor?: string;
+  words?: Array<{ word: string; start: number; end: number }>;
 }
 
 export const NewsSlide: React.FC<NewsSlideProps> = ({
   title,
   bullets,
   bgColor = colors.bgPrimary,
+  words = [],
 }) => {
   const frame = useCurrentFrame();
   const fps = 30;
@@ -79,6 +82,7 @@ export const NewsSlide: React.FC<NewsSlideProps> = ({
           </p>
         ))}
       </div>
+      <LowerThird words={words} />
     </AbsoluteFill>
   );
 };

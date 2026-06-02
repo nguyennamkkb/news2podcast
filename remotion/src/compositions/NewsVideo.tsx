@@ -27,6 +27,7 @@ export const NewsVideo: React.FC<{ slides: SlideData[] }> = ({ slides }) => {
               title={slide.title}
               bullets={slide.bullets}
               bgColor={slide.bgColor || bgColors[i % bgColors.length]}
+              words={slide.wordTimings}
             />
           </TransitionSeries.Sequence>
           {i < slides.length - 1 && (
