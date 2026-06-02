@@ -1,7 +1,11 @@
 {
   "name": "news2video",
   "private": true,
-  "workspaces": ["frontend", "remotion", "shared"],
+  "workspaces": [
+    "frontend",
+    "remotion",
+    "shared"
+  ],
   "scripts": {
     "dev:frontend": "cd frontend && npm run dev",
     "dev:backend": "cd backend && uvicorn app.main:app --reload",
@@ -10,5 +14,8 @@
   },
   "devDependencies": {
     "concurrently": "^9.1.0"
+  },
+  "dependencies": {
+    "@swc/helpers": "^0.5.23"
   }
 }
