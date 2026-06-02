@@ -13,7 +13,7 @@ export default function LandingPage() {
           Convert articles, blog posts, and news into professional video explainers with AI voiceover, karaoke subtitles, and smooth transitions — in seconds.
         </p>
         <div className="flex gap-4 justify-center">
-          <Link href="/app">
+          <Link href="/new">
             <Button size="lg" className="bg-accent-blue hover:bg-accent-blue/80 text-lg px-8 py-6">
               Try It Free
             </Button>
