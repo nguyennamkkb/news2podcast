@@ -5,6 +5,7 @@ from app.api.health import router as health_router
 from app.api.jobs import router as jobs_router
 from app.api.ws import router as ws_router
 from app.api.videos import router as videos_router
+from app.database import init_db
 
 settings = get_settings()
 
@@ -30,6 +31,7 @@ app.include_router(videos_router)
 
 @app.on_event("startup")
 async def startup():
+    await init_db()
     print(f"🚀 News2Video API starting in {settings.environment} mode")
 
 
