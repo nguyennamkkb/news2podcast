@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
@@ -8,7 +8,10 @@ import { useSettings } from "@/hooks/useSettings";
 import { ContentEditor } from "@/components/ContentEditor";
 import { ConfigPanel } from "@/components/ConfigPanel";
 import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageHeader } from "@/components/page-header";
+import { WandSparkles } from "lucide-react";
 import type { VideoConfig } from "@/lib/types";
 
 export default function NewVideoPage() {
@@ -63,58 +66,66 @@ export default function NewVideoPage() {
   };
 
   return (
-    <main className="min-h-screen p-4 md:p-8">
-      <div className="max-w-4xl mx-auto">
-        <div className="flex items-center justify-between mb-8">
-          <Link href="/" className="text-gray-400 hover:text-white">← Back</Link>
-          <h1 className="text-2xl font-display font-black">New Video</h1>
-          <div className="w-16" />
+    <>
+      <PageHeader />
+
+      <main className="flex flex-1 flex-col gap-6 p-4 md:p-8">
+        <div className="mx-auto w-full max-w-4xl">
+          {error && (
+            <Alert variant="destructive" className="mb-4">
+              <AlertDescription className="text-destructive">
+                {error}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setError(null)}
+                  className="float-right text-muted-foreground hover:text-foreground h-auto p-0"
+                >
+                  <span className="sr-only">Dismiss</span>
+                  &times;
+                </Button>
+              </AlertDescription>
+            </Alert>
+          )}
+
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle>Content</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ContentEditor
+                value={content}
+                onChange={setContent}
+                wordCount={wordCount}
+                language={language}
+              />
+            </CardContent>
+          </Card>
+
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle>Configuration</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ConfigPanel
+                config={{ voice, format, targetDuration, slideCount, backgroundMusic }}
+                onChange={(partial) => {
+                  if (partial.voice !== undefined) setVoice(partial.voice);
+                  if (partial.format !== undefined) setFormat(partial.format);
+                  if (partial.targetDuration !== undefined) setTargetDuration(partial.targetDuration);
+                  if (partial.slideCount !== undefined) setSlideCount(partial.slideCount);
+                  if (partial.backgroundMusic !== undefined) setBackgroundMusic(partial.backgroundMusic);
+                }}
+              />
+            </CardContent>
+          </Card>
+
+          <Button size="lg" className="w-full" onClick={handleSubmit} disabled={isPending || wordCount < 10}>
+            <WandSparkles className="mr-2 size-4" />
+            {isPending ? "Generating..." : "Generate Video"}
+          </Button>
         </div>
-
-        {error && (
-          <div className="mb-4 p-3 bg-red-500/20 border border-red-500/40 rounded-lg text-red-400 text-sm">
-            {error}
-            <button onClick={() => setError(null)} className="float-right hover:text-white">&times;</button>
-          </div>
-        )}
-
-        <Card className="bg-bg-secondary border-border mb-6">
-          <CardHeader><CardTitle>Content</CardTitle></CardHeader>
-          <CardContent>
-            <ContentEditor
-              value={content}
-              onChange={setContent}
-              wordCount={wordCount}
-              language={language}
-            />
-          </CardContent>
-        </Card>
-
-        <Card className="bg-bg-secondary border-border mb-6">
-          <CardHeader><CardTitle>Configuration</CardTitle></CardHeader>
-          <CardContent>
-            <ConfigPanel
-              config={{ voice, format, targetDuration, slideCount, backgroundMusic }}
-              onChange={(partial) => {
-                if (partial.voice !== undefined) setVoice(partial.voice);
-                if (partial.format !== undefined) setFormat(partial.format);
-                if (partial.targetDuration !== undefined) setTargetDuration(partial.targetDuration);
-                if (partial.slideCount !== undefined) setSlideCount(partial.slideCount);
-                if (partial.backgroundMusic !== undefined) setBackgroundMusic(partial.backgroundMusic);
-              }}
-            />
-          </CardContent>
-        </Card>
-
-        <Button
-          size="lg"
-          className="w-full bg-accent-blue hover:bg-accent-blue/80"
-          onClick={handleSubmit}
-          disabled={isPending || wordCount < 10}
-        >
-          {isPending ? "⚡ Generating..." : "⚡ Generate Video"}
-        </Button>
-      </div>
-    </main>
+      </main>
+    </>
   );
 }

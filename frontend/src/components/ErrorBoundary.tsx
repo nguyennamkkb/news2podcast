@@ -1,6 +1,7 @@
 "use client";
 
 import { Component, ReactNode } from "react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 
 interface Props { children: ReactNode; }
@@ -17,12 +18,13 @@ export class ErrorBoundary extends Component<Props, State> {
     if (this.state.hasError) {
       return (
         <main className="min-h-screen p-8 flex items-center justify-center">
-          <div className="text-center max-w-md">
-            <p className="text-6xl mb-4">⚠️</p>
-            <h2 className="text-xl font-bold mb-2">Something went wrong</h2>
-            <p className="text-gray-400 mb-4 text-sm">{this.state.error?.message}</p>
-            <Button onClick={() => window.location.reload()}>Reload Page</Button>
-          </div>
+          <Alert variant="destructive" className="max-w-md">
+            <AlertTitle>Something went wrong</AlertTitle>
+            <AlertDescription>{this.state.error?.message}</AlertDescription>
+            <div className="mt-4">
+              <Button onClick={() => window.location.reload()}>Reload Page</Button>
+            </div>
+          </Alert>
         </main>
       );
     }

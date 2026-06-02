@@ -1,6 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 interface Step {
   name: string;
@@ -26,6 +29,25 @@ const STATUS_MAP: Record<string, Step["status"]> = {
   done: "completed",
 };
 
+const STATUS_BADGE_VARIANT: Record<string, "outline" | "secondary" | "default" | "destructive"> = {
+  pending: "outline",
+  in_progress: "secondary",
+  completed: "default",
+  failed: "destructive",
+};
+
+const STATUS_LABEL: Record<string, string> = {
+  pending: "Pending",
+  in_progress: "In Progress",
+  completed: "Done",
+  failed: "Failed",
+};
+
+function StepBadge({ status }: { status: string }) {
+  const variant = STATUS_BADGE_VARIANT[status] || "outline";
+  return <Badge variant={variant}>{STATUS_LABEL[status] || status}</Badge>;
+}
+
 export function ProgressTracker({ jobId }: { jobId: string }) {
   const [steps, setSteps] = useState<Step[]>([]);
   const [percent, setPercent] = useState(0);
@@ -44,25 +66,37 @@ export function ProgressTracker({ jobId }: { jobId: string }) {
   return (
     <div className="w-full max-w-lg mx-auto">
       <div className="mb-6 text-center">
-        <div className="text-4xl mb-2">📹</div>
         <h2 className="text-xl font-bold mb-2">Generating your video</h2>
-        <div className="w-full bg-bg-tertiary rounded-full h-3 mb-2">
-          <div className="bg-accent-blue h-3 rounded-full transition-all duration-500" style={{ width: `${percent}%` }} />
-        </div>
-        <p className="text-sm text-gray-400">{percent}%</p>
+        <Progress value={percent} className="h-3 mb-2" />
+        <p className="text-sm text-muted-foreground">{percent}%</p>
       </div>
-      <div className="space-y-2">
+      <Tabs defaultValue="steps" orientation="vertical" className="w-full">
+        <TabsList variant="line" className="w-full">
+          {steps.map((step, i) => {
+            const status = STATUS_MAP[step.status] || step.status;
+            return (
+              <TabsTrigger key={i} value={step.name} className="flex items-center gap-2">
+                <StepBadge status={status} />
+                <span className="hidden sm:inline text-xs truncate">{STEP_NAMES[step.name] || step.name}</span>
+              </TabsTrigger>
+            );
+          })}
+        </TabsList>
         {steps.map((step, i) => {
           const status = STATUS_MAP[step.status] || step.status;
           return (
-            <div key={i} className="flex items-center gap-3 text-sm">
-              <span>{status === "completed" ? "✅" : status === "in_progress" ? "🔄" : status === "failed" ? "❌" : "⏳"}</span>
-              <span className="flex-1">{STEP_NAMES[step.name] || step.name}</span>
-              {step.duration_ms != null && <span className="text-gray-500">({(step.duration_ms / 1000).toFixed(1)}s)</span>}
-            </div>
+            <TabsContent key={i} value={step.name} className="p-3 rounded-md bg-secondary/50">
+              <div className="flex items-center justify-between gap-3">
+                <span className="font-medium">{STEP_NAMES[step.name] || step.name}</span>
+                <StepBadge status={status} />
+              </div>
+              {step.duration_ms != null && (
+                <p className="text-sm text-muted-foreground mt-1">Duration: {(step.duration_ms / 1000).toFixed(1)}s</p>
+              )}
+            </TabsContent>
           );
         })}
-      </div>
+      </Tabs>
     </div>
   );
 }

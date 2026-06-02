@@ -5,10 +5,17 @@ import Link from 'next/link';
 import { getDownloadUrl } from '@/lib/api';
 import type { VideoListItem, VideoListPagination } from '@/lib/types';
 import { Button } from '@/components/ui/button';
-
-const STATUS_ICONS: Record<string, string> = {
-  completed: '✅', processing: '🔄', queued: '⏳', failed: '❌', cancelled: '🚫',
-};
+import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Separator } from '@/components/ui/separator';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 
 function formatDuration(seconds: number): string {
   if (!seconds || seconds <= 0) return '—';
@@ -25,6 +32,17 @@ function timeAgoText(dateStr: string): string {
   const hours = Math.floor(mins / 60);
   if (hours < 24) return `${hours}h ago`;
   return `${Math.floor(hours / 24)}d ago`;
+}
+
+function statusBadgeVariant(status: string) {
+  switch (status) {
+    case 'completed': return 'default';
+    case 'processing': return 'secondary';
+    case 'failed': return 'destructive';
+    case 'queued': return 'outline';
+    case 'cancelled': return 'outline';
+    default: return 'outline';
+  }
 }
 
 interface HistoryTableProps {
@@ -55,20 +73,19 @@ export function HistoryTable({
   useEffect(() => { setLocalSearch(searchQuery); }, [searchQuery]);
 
   return (
-    <div>
-
-      <div className="flex flex-col sm:flex-row gap-3 mb-4">
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-col sm:flex-row gap-3">
         <input
           type="text"
           value={localSearch}
           onChange={e => setLocalSearch(e.target.value)}
           placeholder="🔍 Search by title..."
-          className="flex-1 bg-bg-primary border-border rounded-lg p-2 text-white text-sm"
+          className="flex-1 bg-background border-border rounded-lg p-2 text-foreground text-sm"
         />
         <select
           value={statusFilter}
           onChange={e => onStatusFilterChange(e.target.value)}
-          className="bg-bg-primary border-border rounded-lg p-2 text-white text-sm"
+          className="bg-background border-border rounded-lg p-2 text-foreground text-sm"
         >
           <option value="">All Status</option>
           <option value="completed">Completed</option>
@@ -79,81 +96,81 @@ export function HistoryTable({
       </div>
 
       {isLoading ? (
-        <div className="space-y-2 py-4">
+        <div className="flex flex-col gap-2 py-4">
           {[1, 2, 3, 4, 5].map(i => (
-            <div key={i} className="animate-pulse flex items-center gap-4 py-3">
-              <div className="w-8 h-4 bg-bg-tertiary rounded" />
-              <div className="flex-1 h-4 bg-bg-tertiary rounded" />
-              <div className="w-16 h-3 bg-bg-tertiary rounded" />
-              <div className="w-12 h-3 bg-bg-tertiary rounded" />
+            <div key={i} className="flex items-center gap-4 py-3">
+              <Skeleton className="w-8 h-4 rounded" />
+              <Skeleton className="flex-1 h-4 rounded" />
+              <Skeleton className="w-16 h-3 rounded" />
+              <Skeleton className="w-12 h-3 rounded" />
             </div>
           ))}
         </div>
       ) : videos.length === 0 ? (
-        <div className="text-center py-12 text-gray-400">
+        <div className="text-center py-12 text-muted-foreground">
           {searchQuery ? 'No videos match your search.' : 'No videos yet.'}
           {!searchQuery && (
             <div className="mt-2">
-              <Link href="/new" className="text-accent-blue hover:underline">Create your first video</Link>
+              <Link href="/new" className="text-primary hover:underline">Create your first video</Link>
             </div>
           )}
         </div>
       ) : (
         <>
-
           <div className="hidden sm:block overflow-x-auto">
-            <table className="w-full text-left">
-              <thead className="text-sm text-gray-400 border-b border-border">
-                <tr>
-                  <th className="py-2 px-3 w-16">Status</th>
-                  <th className="py-2 px-3">Title</th>
-                  <th className="py-2 px-3 w-24">Date</th>
-                  <th className="py-2 px-3 w-20">Duration</th>
-                  <th className="py-2 px-3 w-32">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-20">Status</TableHead>
+                  <TableHead>Title</TableHead>
+                  <TableHead className="w-24">Date</TableHead>
+                  <TableHead className="w-20">Duration</TableHead>
+                  <TableHead className="w-32">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {videos.map(video => (
-                  <tr key={video.video_id || video.job_id} className="border-b border-border/30 hover:bg-bg-tertiary/30 transition-colors">
-                    <td className="py-3 px-3 text-lg">{STATUS_ICONS[video.status] || '❓'}</td>
-                    <td className="py-3 px-3">
-                      <Link href={`/video/${video.job_id || video.video_id}`} className="text-sm font-medium hover:text-accent-blue truncate block max-w-[300px]">
+                  <TableRow key={video.video_id || video.job_id} className="hover:bg-accent/30 transition-colors">
+                    <TableCell>
+                      <Badge variant={statusBadgeVariant(video.status)}>{video.status}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Link href={`/video/${video.job_id || video.video_id}`} className="text-sm font-medium hover:text-primary truncate block max-w-[300px]">
                         {video.title || 'Untitled'}
                       </Link>
-                      <span className="text-xs text-gray-500">{timeAgoText(video.created_at)}</span>
-                    </td>
-                    <td className="py-3 px-3 text-sm text-gray-400">{new Date(video.created_at).toLocaleDateString()}</td>
-                    <td className="py-3 px-3 text-sm text-gray-400">{formatDuration(video.duration_sec)}</td>
-                    <td className="py-3 px-3">
+                      <span className="text-xs text-muted-foreground">{timeAgoText(video.created_at)}</span>
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{new Date(video.created_at).toLocaleDateString()}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{formatDuration(video.duration_sec)}</TableCell>
+                    <TableCell>
                       <div className="flex gap-1">
                         {video.status === 'completed' && video.video_id && (
                           <>
-                            <a href={getDownloadUrl(video.video_id, '9x16')} download className="text-accent-blue hover:underline text-xs">9:16</a>
-                            <a href={getDownloadUrl(video.video_id, '16x9')} download className="text-accent-teal hover:underline text-xs">16:9</a>
+                            <a href={getDownloadUrl(video.video_id, '9x16')} download className="text-primary hover:underline text-xs">9:16</a>
+                            <a href={getDownloadUrl(video.video_id, '16x9')} download className="text-secondary-foreground hover:underline text-xs">16:9</a>
                           </>
                         )}
-                        <Link href={`/video/${video.job_id || video.video_id}`} className="text-xs text-gray-400 hover:text-white">View</Link>
+                        <Link href={`/video/${video.job_id || video.video_id}`} className="text-xs text-muted-foreground hover:text-foreground">View</Link>
                       </div>
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
 
-
-          <div className="sm:hidden space-y-2">
+          <div className="sm:hidden flex flex-col gap-2">
             {videos.map(video => (
               <Link
                 key={video.video_id || video.job_id}
                 href={`/video/${video.job_id || video.video_id}`}
-                className="block p-3 bg-bg-primary border border-border rounded-lg hover:border-accent-blue/30 transition-colors"
+                className="block p-3 bg-card border border-border rounded-lg hover:border-primary/30 transition-colors"
               >
                 <div className="flex items-center gap-2 mb-1">
-                  <span>{STATUS_ICONS[video.status] || '❓'}</span>
+                  <Badge variant={statusBadgeVariant(video.status)}>{video.status}</Badge>
                   <span className="text-sm font-medium truncate">{video.title || 'Untitled'}</span>
                 </div>
-                <div className="flex justify-between text-xs text-gray-500">
+                <div className="flex justify-between text-xs text-muted-foreground">
                   <span>{timeAgoText(video.created_at)}</span>
                   <span>{formatDuration(video.duration_sec)}</span>
                 </div>
@@ -163,9 +180,10 @@ export function HistoryTable({
         </>
       )}
 
+      <Separator />
 
       {pagination && pagination.total_pages > 1 && (
-        <div className="flex justify-center items-center gap-2 mt-6">
+        <div className="flex justify-center items-center gap-2">
           <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => onPageChange(page - 1)}>
             ← Prev
           </Button>
@@ -177,7 +195,7 @@ export function HistoryTable({
                 variant={page === pageNum ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => onPageChange(pageNum)}
-                className={page === pageNum ? 'bg-accent-blue' : ''}
+                className={page === pageNum ? 'bg-primary' : ''}
               >
                 {pageNum}
               </Button>

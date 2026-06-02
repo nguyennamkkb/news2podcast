@@ -1,6 +1,9 @@
 'use client';
 
 import { useState, useRef } from 'react';
+import { Textarea } from '@/components/ui/textarea';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { ClipboardPaste, FileUp, FileText } from 'lucide-react';
 
 interface ContentEditorProps {
   value: string;
@@ -14,6 +17,7 @@ type InputMode = 'paste' | 'upload-md' | 'upload-txt';
 export function ContentEditor({ value, onChange, wordCount, language }: ContentEditorProps) {
   const [mode, setMode] = useState<InputMode>('paste');
   const fileRef = useRef<HTMLInputElement>(null);
+  const isInvalid = wordCount > 0 && wordCount < 10;
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -28,53 +32,64 @@ export function ContentEditor({ value, onChange, wordCount, language }: ContentE
     setMode(file.name.endsWith('.txt') ? 'upload-txt' : 'upload-md');
   };
 
-  const tabs: { id: InputMode; label: string; icon: string }[] = [
-    { id: 'paste', label: 'Paste text', icon: '📋' },
-    { id: 'upload-md', label: 'Upload .md', icon: '📁' },
-    { id: 'upload-txt', label: 'Upload .txt', icon: '📄' },
-  ];
+  const handleModeChange = (val: string) => {
+    if (!val) return;
+    if (val !== 'paste') {
+      fileRef.current?.click();
+    }
+    setMode(val as InputMode);
+  };
 
   return (
-    <div>
-      <div className="flex gap-1 mb-3 flex-wrap">
-        {tabs.map(tab => (
-          <button
-            key={tab.id}
-            onClick={() => { setMode(tab.id); if (tab.id === 'paste') return; fileRef.current?.click(); }}
-            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-              mode === tab.id
-                ? 'bg-accent-blue/20 text-accent-blue'
-                : 'text-gray-400 hover:text-white hover:bg-bg-tertiary'
-            }`}
-          >
-            {tab.icon} {tab.label}
-          </button>
-        ))}
-        <input
-          ref={fileRef}
-          type="file"
-          accept=".md,.txt"
-          onChange={handleFileUpload}
-          className="hidden"
-        />
-      </div>
-
-      <textarea
-        value={value}
-        onChange={(e) => { onChange(e.target.value); setMode('paste'); }}
-        placeholder="Paste your markdown or plain text here..."
-        className="w-full h-64 bg-bg-primary border-border rounded-lg p-4 text-white font-mono text-sm resize-none focus:outline-none focus:ring-2 focus:ring-accent-blue"
+    <div className="flex flex-col gap-3">
+      <ToggleGroup
+        type="single"
+        value={mode}
+        onValueChange={handleModeChange}
+        variant="outline"
+        size="sm"
+      >
+        <ToggleGroupItem value="paste" className="gap-1.5">
+          <ClipboardPaste className="size-3.5" />
+          Paste text
+        </ToggleGroupItem>
+        <ToggleGroupItem value="upload-md" className="gap-1.5">
+          <FileUp className="size-3.5" />
+          Upload .md
+        </ToggleGroupItem>
+        <ToggleGroupItem value="upload-txt" className="gap-1.5">
+          <FileText className="size-3.5" />
+          Upload .txt
+        </ToggleGroupItem>
+      </ToggleGroup>
+      <input
+        ref={fileRef}
+        type="file"
+        accept=".md,.txt"
+        onChange={handleFileUpload}
+        className="hidden"
       />
-      <div className="flex justify-between mt-2 text-sm text-gray-400">
-        <span>Word count: {wordCount}</span>
-        <span>Language: {language}</span>
+
+      <div className="flex flex-col gap-2" data-invalid={isInvalid || undefined}>
+        <Textarea
+          id="content-editor"
+          value={value}
+          onChange={(e) => { onChange(e.target.value); setMode('paste'); }}
+          placeholder="Paste your markdown or plain text here..."
+          className="h-64 font-mono text-sm resize-none"
+          aria-invalid={isInvalid}
+        />
+        <div className="flex justify-between text-sm text-muted-foreground">
+          <span>Word count: {wordCount}</span>
+          <span>Language: {language}</span>
+        </div>
+        {wordCount > 50000 && (
+          <p className="text-xs text-amber-500">Content is very long — video may exceed 5 minutes. Consider reducing.</p>
+        )}
+        {isInvalid && (
+          <p className="text-xs text-destructive">Content too short — minimum 10 words required.</p>
+        )}
       </div>
-      {wordCount > 50000 && (
-        <p className="mt-1 text-xs text-yellow-400">⚠️ Content is very long — video may exceed 5 minutes. Consider reducing.</p>
-      )}
-      {wordCount > 0 && wordCount < 10 && (
-        <p className="mt-1 text-xs text-red-400">⚠️ Content too short — minimum 10 words required.</p>
-      )}
     </div>
   );
 }

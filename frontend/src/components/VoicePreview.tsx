@@ -11,7 +11,6 @@ interface VoicePreviewProps {
 export function VoicePreview({ voiceId, label }: VoicePreviewProps) {
   const [playing, setPlaying] = useState(false);
 
-  // Demo text per voice
   const demoTexts: Record<string, string> = {
     "vi-VN-HoaiMyNeural": "Xin chào, tôi là Hoài My, giọng đọc tin tức miền Bắc.",
     "vi-VN-NamMinhNeural": "Xin chào, tôi là Nam Minh, giọng đọc tin tức miền Bắc.",
@@ -21,7 +20,6 @@ export function VoicePreview({ voiceId, label }: VoicePreviewProps) {
 
   const handlePreview = () => {
     setPlaying(true);
-    // In production, play a pre-generated sample
     const utterance = new SpeechSynthesisUtterance(demoTexts[voiceId] || `${label}`);
     utterance.lang = voiceId.startsWith("vi") ? "vi-VN" : "en-US";
     utterance.rate = 1.0;

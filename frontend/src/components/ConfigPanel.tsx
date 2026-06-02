@@ -1,8 +1,12 @@
 'use client';
 
 import { VoicePreview } from './VoicePreview';
-import { BgMusicSelector } from './BgMusicSelector';
 import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Slider } from '@/components/ui/slider';
+import { Switch } from '@/components/ui/switch';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 
 interface ConfigPanelProps {
   config: {
@@ -22,74 +26,140 @@ const DURATIONS = [
   { id: 90, label: '90s' },
 ];
 
-export function ConfigPanel({ config, onChange }: ConfigPanelProps) {
+const VOICES = [
+  { value: 'vi-VN-HoaiMyNeural', label: 'Nữ miền Bắc (Hoài My)' },
+  { value: 'vi-VN-NamMinhNeural', label: 'Nam miền Bắc (Nam Minh)' },
+  { value: 'en-US-JennyNeural', label: 'Female US (Jenny)' },
+  { value: 'en-US-GuyNeural', label: 'Male US (Guy)' },
+];
+
+const MUSIC_TRACKS = [
+  { value: 'news-theme-1', label: '🎵 News Theme 1' },
+  { value: 'corporate', label: '🏢 Corporate' },
+  { value: 'upbeat', label: '⚡ Upbeat' },
+];
+
+/** Wrapper for a labeled form field section */
+function FieldGroup({ children, className }: { children: React.ReactNode; className?: string }) {
+  return <div className={`flex flex-col gap-2 ${className ?? ''}`}>{children}</div>;
+}
+
+/** Single field: label + control, wired via htmlFor/id */
+function Field({ id, label, children }: { id: string; label: string; children: React.ReactNode }) {
   return (
-    <div className="space-y-6">
-      <div>
-        <label className="text-sm text-gray-400 block mb-2">Voice</label>
+    <FieldGroup>
+      <Label htmlFor={id}>{label}</Label>
+      {children}
+    </FieldGroup>
+  );
+}
+
+export function ConfigPanel({ config, onChange }: ConfigPanelProps) {
+  const bgMusicEnabled = config.backgroundMusic !== null;
+
+  return (
+    <div className="flex flex-col gap-6">
+      <Field id="voice-select" label="Voice">
         <div className="flex gap-2 items-center">
-          <select
+          <Select
             value={config.voice}
-            onChange={e => onChange({ voice: e.target.value })}
-            className="flex-1 bg-bg-primary border-border rounded-lg p-3 text-white"
+            onValueChange={(value) => onChange({ voice: value })}
           >
-            <option value="vi-VN-HoaiMyNeural">Nữ miền Bắc (Hoài My)</option>
-            <option value="vi-VN-NamMinhNeural">Nam miền Bắc (Nam Minh)</option>
-            <option value="en-US-JennyNeural">Female US (Jenny)</option>
-            <option value="en-US-GuyNeural">Male US (Guy)</option>
-          </select>
+            <SelectTrigger id="voice-select" className="flex-1">
+              <SelectValue placeholder="Select voice" />
+            </SelectTrigger>
+            <SelectContent>
+              {VOICES.map((v) => (
+                <SelectItem key={v.value} value={v.value}>
+                  {v.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <VoicePreview voiceId={config.voice} label={config.voice} />
         </div>
-      </div>
+      </Field>
 
-      <div>
-        <label className="text-sm text-gray-400 block mb-2">Format</label>
-        <div className="flex gap-2">
-          {(['9x16', '16x9'] as const).map(f => (
-            <Button
-              key={f}
-              variant={config.format === f ? 'default' : 'outline'}
-              onClick={() => onChange({ format: f })}
-              className={config.format === f ? 'bg-accent-blue' : ''}
-            >
-              {f === '9x16' ? '📱 9:16 (TikTok)' : '🖥️ 16:9 (YouTube)'}
-            </Button>
-          ))}
-        </div>
-      </div>
+      {/* 3.3 Format */}
+      <Field id="format-toggle" label="Format">
+        <ToggleGroup
+          type="single"
+          value={config.format}
+          onValueChange={(value) => {
+            if (value) onChange({ format: value as '9x16' | '16x9' });
+          }}
+          variant="outline"
+        >
+          <ToggleGroupItem value="9x16">📱 9:16 (TikTok)</ToggleGroupItem>
+          <ToggleGroupItem value="16x9">🖥️ 16:9 (YouTube)</ToggleGroupItem>
+        </ToggleGroup>
+      </Field>
 
-      <div>
-        <label className="text-sm text-gray-400 block mb-2">Duration</label>
-        <div className="flex gap-2 flex-wrap">
-          {DURATIONS.map(d => (
-            <Button
-              key={String(d.id)}
-              variant={config.targetDuration === d.id ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => onChange({ targetDuration: d.id })}
-              className={config.targetDuration === d.id ? 'bg-accent-blue' : ''}
-            >
+      {/* 3.4 Duration — ToggleGroup */}
+      <Field id="duration-toggle" label="Duration">
+        <ToggleGroup
+          type="single"
+          value={String(config.targetDuration)}
+          onValueChange={(value) => {
+            if (value) onChange({ targetDuration: value === 'auto' ? 'auto' : Number(value) });
+          }}
+          variant="outline"
+          size="sm"
+        >
+          {DURATIONS.map((d) => (
+            <ToggleGroupItem key={String(d.id)} value={String(d.id)}>
               {d.label}
-            </Button>
+            </ToggleGroupItem>
           ))}
-        </div>
-      </div>
+        </ToggleGroup>
+      </Field>
 
-      <div>
-        <label className="text-sm text-gray-400 block mb-2">Slides: {config.slideCount}</label>
-        <input
-          type="range" min={3} max={8}
-          value={config.slideCount}
-          onChange={e => onChange({ slideCount: Number(e.target.value) })}
-          className="w-full"
+      {/* 3.5 Slide count — Slider + Label */}
+      <Field id="slide-slider" label={`Slides: ${config.slideCount}`}>
+        <Slider
+          id="slide-slider"
+          min={3}
+          max={8}
+          step={1}
+          value={[config.slideCount]}
+          onValueChange={([val]) => onChange({ slideCount: val })}
         />
-        <div className="flex justify-between text-xs text-gray-500 mt-1"><span>3</span><span>8</span></div>
-      </div>
+        <div className="flex justify-between text-xs text-muted-foreground">
+          <span>3</span>
+          <span>8</span>
+        </div>
+      </Field>
 
-      <div>
-        <label className="text-sm text-gray-400 block mb-2">Background Music</label>
-        <BgMusicSelector selected={config.backgroundMusic} onSelect={id => onChange({ backgroundMusic: id })} />
-      </div>
+      {/* 3.6 Background Music — Switch + conditional Select */}
+      <FieldGroup>
+        <div className="flex items-center gap-2">
+          <Switch
+            id="bg-music-switch"
+            checked={bgMusicEnabled}
+            onCheckedChange={(checked) =>
+              onChange({ backgroundMusic: checked ? 'news-theme-1' : null })
+            }
+          />
+          <Label htmlFor="bg-music-switch">Background Music</Label>
+        </div>
+        {bgMusicEnabled && (
+          <Select
+            value={config.backgroundMusic ?? ''}
+            onValueChange={(value) => onChange({ backgroundMusic: value })}
+          >
+            <SelectTrigger id="bg-music-select" className="flex-1">
+              <SelectValue placeholder="Select track" />
+            </SelectTrigger>
+            <SelectContent>
+              {MUSIC_TRACKS.map((track) => (
+                <SelectItem key={track.value} value={track.value}>
+                  {track.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+      </FieldGroup>
     </div>
   );
 }

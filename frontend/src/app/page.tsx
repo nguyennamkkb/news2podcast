@@ -5,88 +5,120 @@ import { useDashboardStats } from "@/hooks/useDashboardStats";
 import { RecentVideoRow } from "@/components/RecentVideoRow";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Separator } from "@/components/ui/separator";
+import { PageHeader } from "@/components/page-header";
+import { Plus, TrendingUp, Clock, DollarSign } from "lucide-react";
 
 export default function DashboardPage() {
   const { videosThisWeek, avgTime, videos, isLoading } = useDashboardStats();
 
   return (
-    <main className="min-h-screen p-4 md:p-8">
-      <div className="max-w-6xl mx-auto">
-        <div className="flex items-center justify-between mb-8">
-          <h1 className="text-2xl md:text-3xl font-display font-black">News2Video</h1>
-          <div className="flex gap-2">
-            <Link href="/settings">
-              <Button variant="ghost" size="sm">⚙️ Settings</Button>
-            </Link>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-          <Card className="bg-bg-secondary border-border">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-gray-400">Videos this week</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-3xl font-bold">{isLoading ? '...' : videosThisWeek}</p>
-            </CardContent>
-          </Card>
-          <Card className="bg-bg-secondary border-border">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-gray-400">Avg time</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-3xl font-bold">{isLoading ? '...' : avgTime > 0 ? `${Math.floor(avgTime / 60)}m ${avgTime % 60}s` : '—'}</p>
-            </CardContent>
-          </Card>
-          <Card className="bg-bg-secondary border-border">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-gray-400">Cost</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-3xl font-bold">~$0.00</p>
-            </CardContent>
-          </Card>
-        </div>
-
+    <>
+      <PageHeader>
         <Link href="/new">
-          <Button size="lg" className="w-full mb-8 bg-accent-blue hover:bg-accent-blue/80 text-base">
-            + New Video
+          <Button size="sm">
+            <Plus className="mr-2 size-4" />
+            New Video
           </Button>
         </Link>
+      </PageHeader>
 
-        <Card className="bg-bg-secondary border-border">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>Recent Videos</CardTitle>
-            <Link href="/history" className="text-xs text-accent-blue hover:underline">View all</Link>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <div className="space-y-3 py-4">
-                {[1,2,3].map(i => (
-                  <div key={i} className="animate-pulse flex items-center gap-3">
-                    <div className="w-6 h-6 bg-bg-tertiary rounded" />
-                    <div className="flex-1 h-4 bg-bg-tertiary rounded" />
-                    <div className="w-12 h-3 bg-bg-tertiary rounded" />
+      <main className="flex flex-1 flex-col gap-6 p-4 md:p-8">
+        <div className="mx-auto w-full max-w-7xl">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium">Videos created</CardTitle>
+                <TrendingUp className="size-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                {isLoading ? <Skeleton className="h-8 w-16" /> : (
+                  <div className="text-2xl font-bold">{videosThisWeek}</div>
+                )}
+                <p className="text-xs text-muted-foreground mt-1">This week</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium">Avg duration</CardTitle>
+                <Clock className="size-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                {isLoading ? <Skeleton className="h-8 w-20" /> : (
+                  <div className="text-2xl font-bold">
+                    {avgTime > 0 ? `${Math.floor(avgTime / 60)}m ${avgTime % 60}s` : '—'}
                   </div>
-                ))}
-              </div>
-            ) : videos.length === 0 ? (
-              <div className="text-center py-12">
-                <p className="text-gray-400 mb-4">No videos yet. Start creating your first video!</p>
-                <Link href="/new">
-                  <Button className="bg-accent-blue hover:bg-accent-blue/80">⚡ Create Your First Video</Button>
+                )}
+                <p className="text-xs text-muted-foreground mt-1">Per video</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium">Voice usage</CardTitle>
+                <DollarSign className="size-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">Free</div>
+                <p className="text-xs text-muted-foreground mt-1">Edge TTS</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium">Cost</CardTitle>
+                <DollarSign className="size-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">~$0.00</div>
+                <p className="text-xs text-muted-foreground mt-1">This month</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="mt-8">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle>Recent Videos</CardTitle>
+                <Link href="/history">
+                  <Button variant="ghost" size="sm">View all</Button>
                 </Link>
-              </div>
-            ) : (
-              <div className="divide-y divide-border/30">
-                {videos.map(video => (
-                  <RecentVideoRow key={video.video_id || video.job_id} video={video} />
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-    </main>
+              </CardHeader>
+              <CardContent>
+                {isLoading ? (
+                  <div className="flex flex-col gap-3 py-4">
+                    {[1,2,3].map(i => (
+                      <div key={i} className="flex items-center gap-3">
+                        <Skeleton className="w-6 h-6 rounded" />
+                        <Skeleton className="flex-1 h-4 rounded" />
+                        <Skeleton className="w-12 h-3 rounded" />
+                      </div>
+                    ))}
+                  </div>
+                ) : videos.length === 0 ? (
+                  <div className="text-center py-12">
+                    <p className="text-muted-foreground mb-4">No videos yet. Start creating your first video!</p>
+                    <Link href="/new">
+                      <Button>Create Your First Video</Button>
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="flex flex-col">
+                    {videos.map((video, index) => (
+                      <div key={video.video_id || video.job_id}>
+                        <RecentVideoRow video={video} />
+                        {index < videos.length - 1 && <Separator />}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </main>
+    </>
   );
 }

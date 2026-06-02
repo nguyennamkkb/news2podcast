@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { Providers } from "./providers";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { Navbar } from "@/components/Navbar";
+import { SidebarProvider } from "@/components/ui/sidebar";
+import { AppSidebar, SidebarInset } from "@/components/app-sidebar";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 export const metadata: Metadata = {
   title: "News2Video - Text to Video AI",
@@ -15,13 +17,17 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="dark">
-      <body className="bg-bg-primary text-white antialiased">
+    <html lang="en">
+      <body className="bg-background text-foreground antialiased">
         <ErrorBoundary>
-          <Providers>
-            <Navbar />
-            {children}
-          </Providers>
+          <TooltipProvider delayDuration={100}>
+            <Providers>
+              <SidebarProvider defaultOpen>
+                <AppSidebar />
+                <SidebarInset>{children}</SidebarInset>
+              </SidebarProvider>
+            </Providers>
+          </TooltipProvider>
         </ErrorBoundary>
       </body>
     </html>
