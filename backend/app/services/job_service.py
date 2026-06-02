@@ -41,3 +41,16 @@ async def list_jobs(db: AsyncSession, page: int = 1, page_size: int = 20) -> lis
         select(Job).order_by(Job.created_at.desc()).offset(offset).limit(page_size)
     )
     return list(result.scalars().all())
+
+
+async def get_cached_job(db: AsyncSession, content: str, config: dict) -> Job | None:
+    """Check if an identical job was already completed."""
+    content_hash = hash_content(content)
+    config_hash = hashlib.sha256(str(sorted(config.items())).encode()).hexdigest()
+    result = await db.execute(
+        select(Job).where(
+            Job.content_hash == content_hash,
+            Job.status == "completed",
+        ).order_by(Job.completed_at.desc()).limit(1)
+    )
+    return result.scalar_one_or_none()
