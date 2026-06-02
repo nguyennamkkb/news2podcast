@@ -1,4 +1,5 @@
 services:
+  # ========== Infrastructure ==========
   postgres:
     image: postgres:15-alpine
     environment:
@@ -32,8 +33,8 @@ services:
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: minioadmin
     ports:
-      - "9000:9000"   # API
-      - "9001:9001"   # Console
+      - "9000:9000"
+      - "9001:9001"
     volumes:
       - miniodata:/data
     healthcheck:
@@ -66,8 +67,8 @@ services:
       POSTGRES_PWD: news2video
       POSTGRES_SEEDS: postgres
     ports:
-      - "7233:7233"   # gRPC
-      - "8233:8233"   # HTTP (web UI API)
+      - "7233:7233"
+      - "8233:8233"
 
   temporal-ui:
     image: temporalio/ui:latest
@@ -79,6 +80,41 @@ services:
     ports:
       - "8080:8080"
 
+  # ========== Application ==========
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app                    # Mount toàn bộ code backend → sửa file là reload ngay
+      - backend_venv:/app/__pycache__     # Cache riêng
+    env_file:
+      - .env.docker
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend/src:/app/src           # Mount src/ → sửa component/pages reload ngay
+      - ./frontend/public:/app/public     # Mount public/ → sửa assets reload
+      - /app/node_modules                 # Giữ node_modules trong container
+      - /app/.next                        # Giữ .next trong container
+    env_file:
+      - .env.docker
+    depends_on:
+      - backend
+
 volumes:
   pgdata:
   miniodata:
+  backend_venv:
