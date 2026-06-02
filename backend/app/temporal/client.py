@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from temporalio.client import Client
 from app.config import get_settings
 from app.temporal.workflows import NewsToVideoWorkflow

@@ -4,12 +4,18 @@ from functools import lru_cache
 
 
 class Settings(BaseSettings):
-    # Ollama
+    # LLM
+    llm_provider: str = "ollama"  # "ollama" or "openai"
+    llm_api_url: str = ""
+    llm_api_key: str = ""
+    llm_model: str = "qwen3:32b"
+
+    # Ollama (legacy, dùng khi llm_provider="ollama")
     ollama_api_url: str = "https://your-ollama-cloud.com/api/generate"
     ollama_model: str = "qwen3:32b"
 
     # Database
-    database_url: str = "postgresql://news2video:news2video@localhost:5432/news2video"
+    database_url: str = "postgresql+asyncpg://news2video:news2video@localhost:5432/news2video"
 
     # Redis
     redis_url: str = "redis://localhost:6379/0"

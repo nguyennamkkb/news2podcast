@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import hashlib
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -10,12 +12,15 @@ def hash_content(text: str) -> str:
 
 async def create_job(db: AsyncSession, content: str, config: dict) -> Job:
     content_hash = hash_content(content)
-    existing = await db.execute(
-        select(Job).where(Job.content_hash == content_hash, Job.status == "completed").limit(1)
-    )
-    cached = existing.scalar_one_or_none()
-    if cached:
-        return cached
+    # Cache lookup disabled temporarily — get_cached_job computes config_hash
+    # but never uses it in the query, so the cache is ineffective.
+    # Re-enable once a config_hash column is added to the Job model.
+    # existing = await db.execute(
+    #     select(Job).where(Job.content_hash == content_hash, Job.status == "completed").limit(1)
+    # )
+    # cached = existing.scalar_one_or_none()
+    # if cached:
+    #     return cached
 
     job = Job(
         content_text=content,
@@ -43,6 +48,9 @@ async def list_jobs(db: AsyncSession, page: int = 1, page_size: int = 20) -> lis
     return list(result.scalars().all())
 
 
+# TODO: Re-enable and fix get_cached_job once a config_hash column is added
+# to the Job model. Currently config_hash is computed but never used in the
+# query, so the cache is ineffective and this function is unused.
 async def get_cached_job(db: AsyncSession, content: str, config: dict) -> Job | None:
     """Check if an identical job was already completed."""
     content_hash = hash_content(content)

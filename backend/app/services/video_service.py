@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import uuid
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -45,15 +47,11 @@ async def get_video(db: AsyncSession, video_id: uuid.UUID) -> Video | None:
 
 
 async def list_videos(
-    db: AsyncSession, page: int = 1, page_size: int = 20, status: str | None = None
+    db: AsyncSession, page: int = 1, page_size: int = 20
 ) -> tuple[list[Video], int]:
     offset = (page - 1) * page_size
     query = select(Video)
     count_query = select(func.count()).select_from(Video)
-
-    if status is not None:
-        query = query.where(Video.format == status)
-        count_query = count_query.where(Video.format == status)
 
     total_result = await db.execute(count_query)
     total = total_result.scalar()

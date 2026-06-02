@@ -14,10 +14,9 @@ router = APIRouter(prefix="/api/v1/videos", tags=["videos"])
 async def list_videos_endpoint(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
-    status: str = Query(None, description="Filter by format/status"),
     db: AsyncSession = Depends(get_db),
 ):
-    videos, total = await list_videos(db, page=page, page_size=page_size, status=status)
+    videos, total = await list_videos(db, page=page, page_size=page_size)
     total_pages = (total + page_size - 1) // page_size
     return {
         "videos": [

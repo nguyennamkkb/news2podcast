@@ -15,7 +15,46 @@ OUTPUT FORMAT:
 {{"slides": [{{"title": "string", "bullets": ["string"], "voiceover": "string", "duration_sec": number}}]}}"""
 
 
-def generate_script(content: dict, config: dict) -> dict:
+async def _call_ollama(api_url: str, model: str, system_prompt: str, prompt: str) -> str:
+    """Gọi Ollama API (/api/generate)."""
+    payload = {
+        "model": model,
+        "system": system_prompt,
+        "prompt": prompt,
+        "format": "json",
+        "stream": False,
+        "options": {"temperature": 0.3, "num_predict": 2048},
+    }
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        response = await client.post(api_url, json=payload)
+        response.raise_for_status()
+        result = response.json()
+    return result.get("response", "")
+
+
+async def _call_openai(api_url: str, api_key: str, model: str, system_prompt: str, prompt: str) -> str:
+    """Gọi OpenAI-compatible API (/v1/chat/completions)."""
+    headers = {"Content-Type": "application/json"}
+    if api_key:
+        headers["Authorization"] = f"Bearer {api_key}"
+
+    payload = {
+        "model": model,
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": prompt},
+        ],
+        "temperature": 0.3,
+        "max_tokens": 2048,
+    }
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        response = await client.post(api_url, json=payload, headers=headers)
+        response.raise_for_status()
+        result = response.json()
+    return result["choices"][0]["message"]["content"]
+
+
+async def generate_script(content: dict, config: dict) -> dict:
     settings = get_settings()
     n_slides = config.get("slide_count", 5)
     paragraphs = content.get("paragraphs", [])
@@ -29,21 +68,17 @@ def generate_script(content: dict, config: dict) -> dict:
         n_slides = min(n_slides, 4)
 
     system_prompt = SYSTEM_PROMPT.format(n_slides=n_slides)
-    payload = {
-        "model": settings.ollama_model,
-        "system": system_prompt,
-        "prompt": f"Bài viết:\n{article_text}",
-        "format": "json",
-        "stream": False,
-        "options": {"temperature": 0.3, "num_predict": 2048},
-    }
 
-    with httpx.Client(timeout=30.0) as client:
-        response = client.post(settings.ollama_api_url, json=payload)
-        response.raise_for_status()
-        result = response.json()
+    provider = settings.llm_provider
+    if provider == "openai":
+        api_url = settings.llm_api_url
+        model = settings.llm_model
+        raw_response = await _call_openai(api_url, settings.llm_api_key, model, system_prompt, article_text)
+    else:
+        api_url = settings.ollama_api_url
+        model = settings.ollama_model
+        raw_response = await _call_ollama(api_url, model, system_prompt, article_text)
 
-    raw_response = result.get("response", "")
     try:
         slides_data = json.loads(raw_response)
     except json.JSONDecodeError:

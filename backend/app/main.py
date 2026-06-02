@@ -1,3 +1,6 @@
+import asyncio
+import logging
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import get_settings
@@ -6,6 +9,8 @@ from app.api.jobs import router as jobs_router
 from app.api.ws import router as ws_router
 from app.api.videos import router as videos_router
 from app.database import init_db
+
+logger = logging.getLogger(__name__)
 
 settings = get_settings()
 
@@ -32,6 +37,12 @@ app.include_router(videos_router)
 @app.on_event("startup")
 async def startup():
     await init_db()
+    try:
+        from app.temporal.worker import start_worker
+        asyncio.create_task(start_worker())
+        print("🚀 Temporal worker started as background task (dev mode)")
+    except Exception as e:
+        logger.warning(f"⚠️ Could not start Temporal worker: {e}")
     print(f"🚀 News2Video API starting in {settings.environment} mode")
 
 

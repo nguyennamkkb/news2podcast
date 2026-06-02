@@ -3,10 +3,6 @@ from temporalio import workflow
 from temporalio.common import RetryPolicy
 
 
-with workflow.unsafe.imports_passed():
-    pass
-
-
 @workflow.defn
 class NewsToVideoWorkflow:
     @workflow.run
@@ -25,7 +21,7 @@ class NewsToVideoWorkflow:
         ]
 
         try:
-            steps[0]["status"] = "running"
+            steps[0]["status"] = "in_progress"
             await workflow.execute_activity(
                 "update_progress",
                 args=[job_id, "parsing", 5, steps],
@@ -40,8 +36,8 @@ class NewsToVideoWorkflow:
             )
             workflow.logger.info(f"Parsed: {parsed['word_count']} words")
 
-            steps[0]["status"] = "done"
-            steps[1]["status"] = "running"
+            steps[0]["status"] = "completed"
+            steps[1]["status"] = "in_progress"
             await workflow.execute_activity(
                 "update_progress",
                 args=[job_id, "scripting", 10, steps],
@@ -56,8 +52,8 @@ class NewsToVideoWorkflow:
             )
             workflow.logger.info(f"Generated {len(slides_data['slides'])} slides")
 
-            steps[1]["status"] = "done"
-            steps[2]["status"] = "running"
+            steps[1]["status"] = "completed"
+            steps[2]["status"] = "in_progress"
             await workflow.execute_activity(
                 "update_progress",
                 args=[job_id, "tts", 30, steps],
@@ -82,8 +78,8 @@ class NewsToVideoWorkflow:
             if bgm_name:
                 bgm_path = f"backend/audio/bgm/{bgm_name}.mp3"
 
-            steps[2]["status"] = "done"
-            steps[3]["status"] = "running"
+            steps[2]["status"] = "completed"
+            steps[3]["status"] = "in_progress"
             await workflow.execute_activity(
                 "update_progress",
                 args=[job_id, "mixing", 36, steps],
@@ -104,8 +100,8 @@ class NewsToVideoWorkflow:
             else:
                 workflow.logger.info("No background music configured, skipping mix")
 
-            steps[3]["status"] = "done"
-            steps[4]["status"] = "running"
+            steps[3]["status"] = "completed"
+            steps[4]["status"] = "in_progress"
             await workflow.execute_activity(
                 "update_progress",
                 args=[job_id, "aligning", 44, steps],
@@ -124,8 +120,8 @@ class NewsToVideoWorkflow:
 
             workflow.logger.info("Word alignment complete")
 
-            steps[4]["status"] = "done"
-            steps[5]["status"] = "running"
+            steps[4]["status"] = "completed"
+            steps[5]["status"] = "in_progress"
             await workflow.execute_activity(
                 "update_progress",
                 args=[job_id, "rendering", 50, steps],
@@ -141,8 +137,8 @@ class NewsToVideoWorkflow:
             )
             workflow.logger.info(f"Video rendered: {render_result['size_bytes']} bytes")
 
-            steps[5]["status"] = "done"
-            steps[6]["status"] = "running"
+            steps[5]["status"] = "completed"
+            steps[6]["status"] = "in_progress"
             await workflow.execute_activity(
                 "update_progress",
                 args=[job_id, "converting", 80, steps],
@@ -157,8 +153,8 @@ class NewsToVideoWorkflow:
             )
             workflow.logger.info("Format conversion complete")
 
-            steps[6]["status"] = "done"
-            steps[7]["status"] = "running"
+            steps[6]["status"] = "completed"
+            steps[7]["status"] = "in_progress"
             await workflow.execute_activity(
                 "update_progress",
                 args=[job_id, "uploading", 92, steps],
@@ -201,8 +197,8 @@ class NewsToVideoWorkflow:
                 retry_policy=RetryPolicy(maximum_attempts=2),
             )
 
-            steps[7]["status"] = "done"
-            steps[8]["status"] = "running"
+            steps[7]["status"] = "completed"
+            steps[8]["status"] = "in_progress"
             await workflow.execute_activity(
                 "update_progress",
                 args=[job_id, "saving", 98, steps],
@@ -227,12 +223,13 @@ class NewsToVideoWorkflow:
                     upload_result["size_16x9"],
                     thumbnail_url,
                     slides_data,
+                    job_input["config"].get("format", "9x16"),
                 ],
                 start_to_close_timeout=timedelta(seconds=10),
                 retry_policy=RetryPolicy(maximum_attempts=2),
             )
 
-            steps[8]["status"] = "done"
+            steps[8]["status"] = "completed"
             video_data = {
                 "video_id": save_result_data["video_id"],
                 "title": title,

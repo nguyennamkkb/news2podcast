@@ -18,6 +18,7 @@ async def save_result(
     size_16x9: int,
     thumbnail_url: str,
     slides_json: dict,
+    format: str = "9x16",
 ) -> dict:
     async with async_session() as db:
         job_uuid = uuid.UUID(job_id)
@@ -28,7 +29,7 @@ async def save_result(
             duration_sec=duration_sec,
             slide_count=slide_count,
             language=language,
-            format="9x16",
+            format=format,
             file_9x16_url=url_9x16,
             file_9x16_size=size_9x16,
             file_16x9_url=url_16x9,

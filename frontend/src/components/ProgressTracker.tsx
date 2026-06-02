@@ -16,6 +16,14 @@ const STEP_NAMES: Record<string, string> = {
   aligning: "Aligning words",
   rendering: "Rendering video",
   converting: "Converting format",
+  mixing: "Mixing audio",
+  uploading: "Uploading video",
+  saving: "Saving result",
+};
+
+const STATUS_MAP: Record<string, Step["status"]> = {
+  running: "in_progress",
+  done: "completed",
 };
 
 export function ProgressTracker({ jobId }: { jobId: string }) {
@@ -23,7 +31,7 @@ export function ProgressTracker({ jobId }: { jobId: string }) {
   const [percent, setPercent] = useState(0);
 
   useEffect(() => {
-    const ws = new WebSocket(`ws://localhost:8000/api/v1/ws/jobs/${jobId}`);
+    const ws = new WebSocket(`ws://${window.location.host}/api/v1/ws/jobs/${jobId}`);
     ws.onmessage = (event) => {
       const data = JSON.parse(event.data);
       setPercent(data.percent || 0);
@@ -44,13 +52,16 @@ export function ProgressTracker({ jobId }: { jobId: string }) {
         <p className="text-sm text-gray-400">{percent}%</p>
       </div>
       <div className="space-y-2">
-        {steps.map((step, i) => (
-          <div key={i} className="flex items-center gap-3 text-sm">
-            <span>{step.status === "completed" ? "✅" : step.status === "in_progress" ? "🔄" : step.status === "failed" ? "❌" : "⏳"}</span>
-            <span className="flex-1">{STEP_NAMES[step.name] || step.name}</span>
-            {step.duration_ms != null && <span className="text-gray-500">({(step.duration_ms / 1000).toFixed(1)}s)</span>}
-          </div>
-        ))}
+        {steps.map((step, i) => {
+          const status = STATUS_MAP[step.status] || step.status;
+          return (
+            <div key={i} className="flex items-center gap-3 text-sm">
+              <span>{status === "completed" ? "✅" : status === "in_progress" ? "🔄" : status === "failed" ? "❌" : "⏳"}</span>
+              <span className="flex-1">{STEP_NAMES[step.name] || step.name}</span>
+              {step.duration_ms != null && <span className="text-gray-500">({(step.duration_ms / 1000).toFixed(1)}s)</span>}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
