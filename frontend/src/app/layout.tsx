@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { Providers } from "./providers";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 export const metadata: Metadata = {
   title: "News2Video - Text to Video AI",
@@ -15,7 +16,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body className="bg-bg-primary text-white antialiased">
-        <Providers>{children}</Providers>
+        <ErrorBoundary><Providers>{children}</Providers></ErrorBoundary>
       </body>
     </html>
   );
