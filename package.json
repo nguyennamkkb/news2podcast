@@ -7,5 +7,8 @@
     "dev:backend": "cd backend && uvicorn app.main:app --reload",
     "dev:remotion": "cd remotion && npm run dev",
     "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\" \"npm run dev:remotion\""
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0"
   }
 }
