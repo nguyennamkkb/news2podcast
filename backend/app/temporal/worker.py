@@ -8,6 +8,9 @@ from app.temporal.activities.generate_script import generate_script
 from app.temporal.activities.generate_tts import generate_tts
 from app.temporal.activities.render_video import render_video
 from app.temporal.activities.convert_format import convert_9x16_to_16x9
+from app.temporal.activities.update_progress import update_progress, mark_job_completed, mark_job_failed
+from app.temporal.activities.upload_storage import upload_storage
+from app.temporal.activities.save_result import save_result
 
 
 async def start_worker():
@@ -17,7 +20,18 @@ async def start_worker():
         client,
         task_queue="news2video-tasks",
         workflows=[NewsToVideoWorkflow],
-        activities=[parse_content, generate_script, generate_tts, render_video, convert_9x16_to_16x9],
+        activities=[
+            parse_content,
+            generate_script,
+            generate_tts,
+            render_video,
+            convert_9x16_to_16x9,
+            update_progress,
+            mark_job_completed,
+            mark_job_failed,
+            upload_storage,
+            save_result,
+        ],
     )
     print("🚀 Temporal worker starting...")
     await worker.run()
