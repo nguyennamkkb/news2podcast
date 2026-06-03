@@ -1,6 +1,0 @@
-{
-  "name": "news2video-shared",
-  "version": "0.1.0",
-  "private": true,
-  "main": "types.ts"
-}

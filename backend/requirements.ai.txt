@@ -1,3 +1,0 @@
-# Requirements cho AI pipeline (chỉ chạy ngoài Docker hoặc worker container riêng)
-edge-tts==6.1.0
-whisperx==3.1.1
