@@ -24,6 +24,7 @@ class Job(Base):
     detected_lang: Mapped[Optional[str]] = mapped_column(String(10), nullable=True)
     config_json: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
     progress_json: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
+    script_data: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
     workflow_id: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     error_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     retry_count: Mapped[int] = mapped_column(Integer, default=0)
@@ -39,7 +40,7 @@ class Job(Base):
 
     __table_args__ = (
         CheckConstraint(
-            "status IN ('queued', 'processing', 'completed', 'failed', 'cancelled')",
+            "status IN ('queued', 'processing', 'awaiting_review', 'completed', 'failed', 'cancelled')",
             name="valid_status",
         ),
         CheckConstraint("word_count > 0", name="positive_word_count"),
