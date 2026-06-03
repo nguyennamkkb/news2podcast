@@ -5,12 +5,25 @@ from temporalio.common import RetryPolicy
 
 @workflow.defn
 class NewsToVideoWorkflow:
+    def __init__(self):
+        self._script_approved = False
+        self._script_rejected = False
+
+    @workflow.signal
+    async def approve_script(self) -> None:
+        self._script_approved = True
+
+    @workflow.signal
+    async def reject_script(self) -> None:
+        self._script_rejected = True
+
     @workflow.run
     async def run(self, job_input: dict) -> dict:
         job_id = job_input["job_id"]
         steps = [
             {"name": "parsing", "status": "pending"},
             {"name": "scripting", "status": "pending"},
+            {"name": "awaiting_review", "status": "pending"},
             {"name": "tts", "status": "pending"},
             {"name": "mixing", "status": "pending"},
             {"name": "aligning", "status": "pending"},
@@ -44,9 +57,13 @@ class NewsToVideoWorkflow:
                 start_to_close_timeout=timedelta(seconds=5),
             )
 
+            config_with_llm = dict(job_input["config"])
+            if "llm_config" in job_input:
+                config_with_llm["llm_config"] = job_input["llm_config"]
+
             slides_data = await workflow.execute_activity(
                 "generate_script",
-                args=[parsed, job_input["config"]],
+                args=[parsed, config_with_llm],
                 start_to_close_timeout=timedelta(seconds=30),
                 retry_policy=RetryPolicy(maximum_attempts=2),
             )
@@ -56,7 +73,66 @@ class NewsToVideoWorkflow:
             steps[2]["status"] = "in_progress"
             await workflow.execute_activity(
                 "update_progress",
-                args=[job_id, "tts", 30, steps],
+                args=[job_id, "awaiting_review", 15, steps],
+                start_to_close_timeout=timedelta(seconds=5),
+            )
+
+            await workflow.execute_activity(
+                "save_script_data",
+                args=[job_id, slides_data],
+                start_to_close_timeout=timedelta(seconds=5),
+            )
+
+            script_review_enabled = job_input.get("script_review_enabled", True)
+            if script_review_enabled:
+                await workflow.wait_condition(
+                    lambda: self._script_approved or self._script_rejected
+                )
+
+                if self._script_rejected:
+                    self._script_approved = False
+                    self._script_rejected = False
+                    steps[2]["status"] = "completed"
+                    steps[1]["status"] = "in_progress"
+                    await workflow.execute_activity(
+                        "update_progress",
+                        args=[job_id, "scripting", 10, steps],
+                        start_to_close_timeout=timedelta(seconds=5),
+                    )
+                    slides_data = await workflow.execute_activity(
+                        "generate_script",
+                        args=[parsed, config_with_llm],
+                        start_to_close_timeout=timedelta(seconds=30),
+                        retry_policy=RetryPolicy(maximum_attempts=2),
+                    )
+                    workflow.logger.info(f"Regenerated {len(slides_data['slides'])} slides")
+
+                    await workflow.execute_activity(
+                        "save_script_data",
+                        args=[job_id, slides_data],
+                        start_to_close_timeout=timedelta(seconds=5),
+                    )
+
+                    steps[1]["status"] = "completed"
+                    steps[2]["status"] = "in_progress"
+                    await workflow.execute_activity(
+                        "update_progress",
+                        args=[job_id, "awaiting_review", 15, steps],
+                        start_to_close_timeout=timedelta(seconds=5),
+                    )
+
+                    await workflow.wait_condition(
+                        lambda: self._script_approved or self._script_rejected
+                    )
+
+                    if self._script_rejected:
+                        raise Exception("Script rejected after regeneration")
+
+            steps[2]["status"] = "completed"
+            steps[3]["status"] = "in_progress"
+            await workflow.execute_activity(
+                "update_progress",
+                args=[job_id, "tts", 20, steps],
                 start_to_close_timeout=timedelta(seconds=5),
             )
 
@@ -78,8 +154,8 @@ class NewsToVideoWorkflow:
             if bgm_name:
                 bgm_path = f"backend/audio/bgm/{bgm_name}.mp3"
 
-            steps[2]["status"] = "completed"
-            steps[3]["status"] = "in_progress"
+            steps[3]["status"] = "completed"
+            steps[4]["status"] = "in_progress"
             await workflow.execute_activity(
                 "update_progress",
                 args=[job_id, "mixing", 36, steps],
@@ -100,8 +176,8 @@ class NewsToVideoWorkflow:
             else:
                 workflow.logger.info("No background music configured, skipping mix")
 
-            steps[3]["status"] = "completed"
-            steps[4]["status"] = "in_progress"
+            steps[4]["status"] = "completed"
+            steps[5]["status"] = "in_progress"
             await workflow.execute_activity(
                 "update_progress",
                 args=[job_id, "aligning", 44, steps],
@@ -120,8 +196,8 @@ class NewsToVideoWorkflow:
 
             workflow.logger.info("Word alignment complete")
 
-            steps[4]["status"] = "completed"
-            steps[5]["status"] = "in_progress"
+            steps[5]["status"] = "completed"
+            steps[6]["status"] = "in_progress"
             await workflow.execute_activity(
                 "update_progress",
                 args=[job_id, "rendering", 50, steps],
@@ -137,8 +213,8 @@ class NewsToVideoWorkflow:
             )
             workflow.logger.info(f"Video rendered: {render_result['size_bytes']} bytes")
 
-            steps[5]["status"] = "completed"
-            steps[6]["status"] = "in_progress"
+            steps[6]["status"] = "completed"
+            steps[7]["status"] = "in_progress"
             await workflow.execute_activity(
                 "update_progress",
                 args=[job_id, "converting", 80, steps],
@@ -153,8 +229,8 @@ class NewsToVideoWorkflow:
             )
             workflow.logger.info("Format conversion complete")
 
-            steps[6]["status"] = "completed"
-            steps[7]["status"] = "in_progress"
+            steps[7]["status"] = "completed"
+            steps[8]["status"] = "in_progress"
             await workflow.execute_activity(
                 "update_progress",
                 args=[job_id, "uploading", 92, steps],
@@ -197,8 +273,8 @@ class NewsToVideoWorkflow:
                 retry_policy=RetryPolicy(maximum_attempts=2),
             )
 
-            steps[7]["status"] = "completed"
-            steps[8]["status"] = "in_progress"
+            steps[8]["status"] = "completed"
+            steps[9]["status"] = "in_progress"
             await workflow.execute_activity(
                 "update_progress",
                 args=[job_id, "saving", 98, steps],
@@ -229,7 +305,7 @@ class NewsToVideoWorkflow:
                 retry_policy=RetryPolicy(maximum_attempts=2),
             )
 
-            steps[8]["status"] = "completed"
+            steps[9]["status"] = "completed"
             video_data = {
                 "video_id": save_result_data["video_id"],
                 "title": title,

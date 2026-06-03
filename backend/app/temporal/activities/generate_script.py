@@ -1,7 +1,10 @@
 import json
+import logging
 import httpx
 from temporalio import activity
-from app.config import get_settings
+from app.config import get_settings, mask_api_key
+
+logger = logging.getLogger(__name__)
 
 SYSTEM_PROMPT = """Bạn là editor video chuyên nghiệp. Từ nội dung bài viết, tạo script cho video news explainer.
 
@@ -16,10 +19,7 @@ OUTPUT FORMAT:
 {{"slides": [{{"title": "string", "bullets": ["string"], "voiceover": "string", "duration_sec": number}}]}}"""
 
 
-# --- Internal helpers (plain functions, NOT activities) ---
-
-def _call_ollama(api_url: str, model: str, system_prompt: str, prompt: str) -> str:
-    """Gọi Ollama API (/api/generate)."""
+async def _call_ollama(api_url: str, model: str, system_prompt: str, prompt: str) -> str:
     payload = {
         "model": model,
         "system": system_prompt,
@@ -28,15 +28,14 @@ def _call_ollama(api_url: str, model: str, system_prompt: str, prompt: str) -> s
         "stream": False,
         "options": {"temperature": 0.3, "num_predict": 2048},
     }
-    with httpx.Client(timeout=30.0) as client:
-        response = client.post(api_url, json=payload)
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        response = await client.post(api_url, json=payload)
         response.raise_for_status()
         result = response.json()
     return result.get("response", "")
 
 
-def _call_openai(api_url: str, api_key: str, model: str, system_prompt: str, prompt: str) -> str:
-    """Gọi OpenAI-compatible API (/v1/chat/completions)."""
+async def _call_openai(api_url: str, api_key: str, model: str, system_prompt: str, prompt: str) -> str:
     headers = {"Content-Type": "application/json"}
     if api_key:
         headers["Authorization"] = f"Bearer {api_key}"
@@ -50,14 +49,12 @@ def _call_openai(api_url: str, api_key: str, model: str, system_prompt: str, pro
         "temperature": 0.3,
         "max_tokens": 2048,
     }
-    with httpx.Client(timeout=30.0) as client:
-        response = client.post(api_url, json=payload, headers=headers)
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        response = await client.post(api_url, json=payload, headers=headers)
         response.raise_for_status()
         result = response.json()
     return result["choices"][0]["message"]["content"]
 
-
-# --- Temporal activity ---
 
 @activity.defn
 async def generate_script(content: dict, config: dict) -> dict:
@@ -75,15 +72,33 @@ async def generate_script(content: dict, config: dict) -> dict:
 
     system_prompt = SYSTEM_PROMPT.format(n_slides=n_slides)
 
-    provider = settings.llm_provider
-    if provider == "openai":
-        api_url = settings.llm_api_url
-        model = settings.llm_model
-        raw_response = await _call_openai(api_url, settings.llm_api_key, model, system_prompt, article_text)
+    llm_config = config.get("llm_config")
+
+    if llm_config:
+        provider = llm_config.get("provider", settings.llm_provider)
+        if provider == "openai":
+            api_url = llm_config.get("api_url") or settings.llm_api_url
+            api_key = llm_config.get("api_key") or settings.llm_api_key
+            model = llm_config.get("model") or settings.llm_model
+            logger.info(f"Using OpenAI-compatible LLM: {api_url} model={model} key={mask_api_key(api_key)}")
+            raw_response = await _call_openai(api_url, api_key, model, system_prompt, article_text)
+        else:
+            api_url = llm_config.get("api_url") or settings.ollama_api_url
+            model = llm_config.get("model") or settings.ollama_model
+            logger.info(f"Using Ollama LLM: {api_url} model={model}")
+            raw_response = await _call_ollama(api_url, model, system_prompt, article_text)
     else:
-        api_url = settings.ollama_api_url
-        model = settings.ollama_model
-        raw_response = await _call_ollama(api_url, model, system_prompt, article_text)
+        provider = settings.llm_provider
+        if provider == "openai":
+            api_url = settings.llm_api_url
+            model = settings.llm_model
+            logger.info(f"Using OpenAI-compatible LLM (env): {api_url} model={model} key={mask_api_key(settings.llm_api_key)}")
+            raw_response = await _call_openai(api_url, settings.llm_api_key, model, system_prompt, article_text)
+        else:
+            api_url = settings.ollama_api_url
+            model = settings.ollama_model
+            logger.info(f"Using Ollama LLM (env): {api_url} model={model}")
+            raw_response = await _call_ollama(api_url, model, system_prompt, article_text)
 
     try:
         slides_data = json.loads(raw_response)
