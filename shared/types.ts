@@ -13,6 +13,13 @@ export interface JobProgress {
   steps: ProgressStep[];
 }
 
+export interface LLMConfig {
+  provider: 'ollama' | 'openai';
+  api_url: string;
+  api_key?: string;
+  model: string;
+}
+
 export interface VideoConfig {
   voice: string;
   format: '9x16' | '16x9';
@@ -20,11 +27,13 @@ export interface VideoConfig {
   target_duration_sec: number;
   slide_count: number;
   background_music: string | null;
+  llm_config?: LLMConfig;
 }
 
 export interface CreateJobRequest {
   content: string;
   config: VideoConfig;
+  llm_config?: LLMConfig;
 }
 
 export interface JobResponse {

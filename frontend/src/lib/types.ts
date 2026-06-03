@@ -4,7 +4,7 @@
  * so we copy the needed types here.
  */
 
-export type JobStatus = 'queued' | 'processing' | 'completed' | 'failed' | 'cancelled';
+export type JobStatus = 'queued' | 'processing' | 'awaiting_review' | 'completed' | 'failed' | 'cancelled';
 export type StepStatus = 'pending' | 'in_progress' | 'completed' | 'failed';
 
 export interface ProgressStep {
@@ -21,6 +21,13 @@ export interface JobProgress {
 
 export interface WordTiming { word: string; start: number; end: number; }
 
+export interface LLMConfig {
+  provider: 'ollama' | 'openai';
+  api_url: string;
+  api_key?: string;
+  model: string;
+}
+
 export interface VideoConfig {
   voice: string;
   format: '9x16' | '16x9';
@@ -28,11 +35,13 @@ export interface VideoConfig {
   target_duration_sec: number;
   slide_count: number;
   background_music: string | null;
+  llm_config?: LLMConfig;
 }
 
 export interface CreateJobRequest {
   content: string;
   config: VideoConfig;
+  llm_config?: LLMConfig;
 }
 
 export interface JobResponse {
@@ -53,11 +62,23 @@ export interface VideoOutput {
   };
 }
 
+export interface Slide {
+  title: string;
+  bullets: string[];
+  voiceover: string;
+  duration_sec: number;
+}
+
+export interface ScriptData {
+  slides: Slide[];
+}
+
 export interface JobDetailResponse {
   job_id: string;
   status: JobStatus;
   progress: JobProgress | null;
   video: VideoOutput | null;
+  script_data: ScriptData | null;
   error_message: string | null;
   created_at: string;
   updated_at: string;
