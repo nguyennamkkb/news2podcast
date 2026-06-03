@@ -4,6 +4,13 @@ from datetime import datetime
 import uuid
 
 
+class LLMConfigSchema(BaseModel):
+    provider: Literal["ollama", "openai"] = "ollama"
+    api_url: str = ""
+    api_key: Optional[str] = None
+    model: str = "qwen3:32b"
+
+
 class VideoConfigSchema(BaseModel):
     voice: str = "vi-VN-HoaiMyNeural"
     format: Literal["9x16", "16x9"] = "9x16"
@@ -11,11 +18,13 @@ class VideoConfigSchema(BaseModel):
     target_duration_sec: int = 60
     slide_count: int = 5
     background_music: Optional[str] = None
+    llm_config: Optional[LLMConfigSchema] = None
 
 
 class CreateJobRequest(BaseModel):
     content: str = Field(..., min_length=10, max_length=50000)
     config: VideoConfigSchema = VideoConfigSchema()
+    llm_config: Optional[LLMConfigSchema] = None
 
 
 class JobResponse(BaseModel):
@@ -52,11 +61,23 @@ class VideoOutputSchema(BaseModel):
     downloads: dict[str, DownloadInfo]
 
 
+class SlideSchema(BaseModel):
+    title: str
+    bullets: list[str]
+    voiceover: str
+    duration_sec: float
+
+
+class ScriptDataSchema(BaseModel):
+    slides: list[SlideSchema]
+
+
 class JobDetailResponse(BaseModel):
     job_id: uuid.UUID
     status: str
     progress: Optional[ProgressSchema] = None
     video: Optional[VideoOutputSchema] = None
+    script_data: Optional[ScriptDataSchema] = None
     error_message: Optional[str] = None
     created_at: datetime
     updated_at: datetime

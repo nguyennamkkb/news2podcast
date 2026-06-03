@@ -8,6 +8,7 @@ from app.api.health import router as health_router
 from app.api.jobs import router as jobs_router
 from app.api.ws import router as ws_router
 from app.api.videos import router as videos_router
+from app.api.llm import router as llm_router
 from app.database import init_db
 
 logger = logging.getLogger(__name__)
@@ -32,6 +33,7 @@ app.include_router(health_router)
 app.include_router(jobs_router)
 app.include_router(ws_router)
 app.include_router(videos_router)
+app.include_router(llm_router)
 
 
 @app.on_event("startup")

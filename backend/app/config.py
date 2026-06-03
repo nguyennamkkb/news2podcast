@@ -44,3 +44,9 @@ class Settings(BaseSettings):
 @lru_cache()
 def get_settings() -> Settings:
     return Settings()
+
+
+def mask_api_key(key: str) -> str:
+    if not key or len(key) <= 4:
+        return "****"
+    return f"****{key[-4:]}"
