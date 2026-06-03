@@ -8,6 +8,11 @@ export interface UserSettings {
   defaultOutputs: ('9x16' | '16x9')[];
   defaultSlideCount: number;
   defaultTargetDuration: number | 'auto';
+  backgroundMusic: string | null;
+  llmProvider: 'ollama' | 'openai';
+  llmApiUrl: string;
+  llmApiKey: string;
+  llmModel: string;
   ollamaApiUrl: string;
   ollamaModel: string;
 }
@@ -20,6 +25,11 @@ const DEFAULTS: UserSettings = {
   defaultOutputs: ['9x16', '16x9'],
   defaultSlideCount: 5,
   defaultTargetDuration: 'auto',
+  backgroundMusic: null,
+  llmProvider: 'ollama',
+  llmApiUrl: '',
+  llmApiKey: '',
+  llmModel: 'qwen3:32b',
   ollamaApiUrl: '',
   ollamaModel: 'qwen3:32b',
 };
