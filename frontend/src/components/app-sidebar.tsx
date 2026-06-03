@@ -9,6 +9,7 @@ import {
   Settings,
   Radio,
 } from 'lucide-react';
+import { LLMStatusBadge } from '@/components/LLMStatusBadge';
 import {
   Sidebar,
   SidebarContent,
@@ -85,10 +86,15 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="sm" asChild>
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground w-full">
                 <span className="truncate">v0.1.0</span>
               </div>
             </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <div className="px-2">
+              <LLMStatusBadge />
+            </div>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>
