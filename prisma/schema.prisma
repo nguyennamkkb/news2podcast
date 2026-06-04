@@ -1,0 +1,60 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum ProjectStatus {
+  DRAFT
+  QUEUED
+  GENERATING
+  COMPLETED
+  FAILED
+  ARCHIVED
+}
+
+model Project {
+  id             String         @id @default(cuid())
+  title          String
+  description    String?
+  status         ProjectStatus @default(DRAFT)
+  scriptData     String?
+  targetDuration Int?
+  slideCount     Int?
+  promptInput    String?
+  style          String?
+  language       String         @default("vi")
+  targetPlatform String         @default("youtube")
+  visualStyle    String         @default("cinematic")
+  aiModel        String?
+  aiTokensUsed   Int?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  versions       ScriptVersion[]
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+model ScriptVersion {
+  id         String   @id @default(cuid())
+  projectId  String
+  version    Int
+  scriptData String
+  changelog  String?
+  createdAt  DateTime @default(now())
+  project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, version])
+  @@index([projectId])
+}
+
+model Settings {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  updatedAt DateTime @updatedAt
+}
