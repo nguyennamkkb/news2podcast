@@ -1,0 +1,19 @@
+"use client";
+
+export default function DashboardError({
+  error,
+  reset,
+}: {
+  error: Error & { digest?: string };
+  reset: () => void;
+}) {
+  return (
+    <div className="flex flex-col items-center justify-center py-16">
+      <h2 className="text-xl font-bold mb-2">Đã xảy ra lỗi</h2>
+      <p className="text-muted-foreground mb-4">{error.message}</p>
+      <button onClick={reset} className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90">
+        Thử lại
+      </button>
+    </div>
+  );
+}
